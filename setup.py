@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='commitly_api',
-    version='0.1.6',
+    version='0.1.7',
     description='A short description of your project',
     author='Joan Arau',
     author_email='arau.j@zinnfiguren.de',

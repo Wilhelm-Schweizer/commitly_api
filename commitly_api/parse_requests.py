@@ -72,7 +72,7 @@ def get_invoices(api):
 
     # Display the DataFrame
     df.head()
-    print(df)
+    return df
 
 # get_invoices(api)
 
@@ -110,7 +110,7 @@ def get_banks(api):
     df = pd.DataFrame(flattened_data)
 
     # Display the DataFrame
-    print(df)
+    return df
 
 # get_banks(api)
 
