@@ -1,0 +1,89 @@
+import requests
+
+
+class CommitlyAPI:
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.base_url = "https://backend.commitly.com"
+        self.token_url = f"{self.base_url}/auth/token/"
+        self.access_token = None
+
+    def authenticate(self):
+        payload = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'grant_type': 'client_credentials'
+        }
+
+        response = requests.post(self.token_url, data=payload)
+
+        print("Response status code:", response.status_code)
+        print("Response content:", response.content)  # Add this line to inspect the response content
+
+        if response.status_code in [200, 201]:  # Treat 201 as success for now
+            self.access_token = response.json().get('access_token')
+            if self.access_token:
+                print("Authentication successful. Access token obtained.")
+            else:
+                print("Access token not found in the response.")
+        else:
+            print(f"Failed to authenticate. Status code: {response.status_code}")
+            response.raise_for_status()
+
+    def get_headers(self):
+        """
+        Get the headers required for making authorized API requests.
+        """
+        if not self.access_token:
+            raise Exception("No access token found. Please authenticate first.")
+
+        return {
+            'Authorization': f'Bearer {self.access_token}',
+            'Content-Type': 'application/json'
+        }
+
+    def make_api_call(self, endpoint, method='GET', data=None, params=None):
+        """Make an API call to the specified endpoint with the given method, and handle pagination."""
+        url = f"{self.base_url}{endpoint}"
+        headers = self.get_headers()
+        all_results = []
+
+        while url:
+            if method.upper() == 'GET':
+                response = requests.get(url, headers=headers, params=params)
+            elif method.upper() == 'POST':
+                response = requests.post(url, headers=headers, json=data)
+            elif method.upper() == 'PATCH':
+                response = requests.patch(url, headers=headers, json=data)
+            elif method.upper() == 'DELETE':
+                response = requests.delete(url, headers=headers)
+            else:
+                raise ValueError("Invalid HTTP method specified.")
+
+            if response.status_code in [200, 201]:
+                json_response = response.json()
+                if 'results' in json_response:
+                    all_results.extend(json_response['results'])
+                else:
+                    return json_response  # Return the response directly if it's not paginated
+
+                # Check if there's a next page
+                url = json_response.get('next')
+                if url:
+                    print(f"Fetching next page: {url}")
+                    # If `url` is a relative path, join it with the base URL
+                    if not url.startswith("http"):
+                        url = f"{self.base_url}{url}"
+                    # Reset params for subsequent pages (avoid appending them to the URL repeatedly)
+                    params = None
+                else:
+                    url = None
+            else:
+                print(f"API call failed. Status code: {response.status_code}")
+                response.raise_for_status()
+
+        return all_results
+
+# Example usage:
+
