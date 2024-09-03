@@ -1,11 +1,7 @@
-client_id = "4bcda849-4658-41a7-9b98-f4a32b3a6527"
-client_secret = "ddf50133-2eff-4490-8008-6e678b8be8ef"
-
 
 import auth
 
-api = auth.CommitlyAPI(client_id, client_secret)
-api.authenticate()
+
 
 
 import pandas as pd
@@ -96,11 +92,9 @@ def get_banks(api):
 
 # get_banks(api)
 
-from urllib.parse import urlparse, urljoin
-
 
 def get_transactions(api):
-    all_transactions = []
+
 
     try:
         data = api.make_api_call("/transactions/")
@@ -141,4 +135,3 @@ def get_transactions(api):
     print(df)
     return df
 
-get_transactions(api)
