@@ -10,28 +10,40 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
 
-
 def get_categories(api):
+    # Initialize data to avoid UnboundLocalError
+    data = []
+
     # Example of making a GET request to fetch company categories
     try:
         data = api.make_api_call("/categories/")
-        print(data)
+        print("API call returned data: ", data)
     except Exception as e:
         print(f"Error during API call: {e}")
+        return None  # Exit the function if an error occurs
 
+    if isinstance(data, list):
+        # Convert the data into a pandas DataFrame
+        df = pd.DataFrame(data)
 
-    # Convert the data into a pandas DataFrame
-    df = pd.DataFrame(data)
+        # Ensure the 'parent' key exists in the DataFrame
+        if 'parent' in df.columns:
+            print("Processing 'parent' field...")
+            print("Sample 'parent' data: ", df['parent'].head())
 
-    # If the 'parent' key contains a dictionary, extract 'parent_id' and 'parent_name'
-    df['parent_id'] = df['parent'].apply(lambda x: x['id'] if isinstance(x, dict) else None)
-    df['parent_name'] = df['parent'].apply(lambda x: x['name'] if isinstance(x, dict) else None)
+            # Handle cases where 'parent' might be a dictionary or None
+            df['parent_id'] = df['parent'].apply(lambda x: x.get('id') if isinstance(x, dict) else None)
+            df['parent_name'] = df['parent'].apply(lambda x: x.get('name') if isinstance(x, dict) else None)
 
-    # Drop the original 'parent' column
-    df = df.drop(columns=['parent'])
+            # Drop the original 'parent' column
+            df = df.drop(columns=['parent'])
 
-    print(df)
-
+        print("Final DataFrame: ")
+        print(df)
+        return df
+    else:
+        print("Unexpected data structure. Expected a list of categories.")
+        return None
 # get_categories(api)
 
 def get_invoices(api):
@@ -74,7 +86,7 @@ def get_banks(api):
 
     flattened_data = []
 
-    for result in data['results']:
+    for result in data:
         for account in result['accounts']:
             flattened_record = {
                 'bank_connection_id': result['id'],
