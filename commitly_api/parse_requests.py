@@ -17,7 +17,7 @@ def get_categories(api):
     # Example of making a GET request to fetch company categories
     try:
         data = api.make_api_call("/categories/")
-        print("API call returned data: ", data)
+        # print("API call returned data: ", data)
     except Exception as e:
         print(f"Error during API call: {e}")
         return None  # Exit the function if an error occurs
@@ -28,8 +28,8 @@ def get_categories(api):
 
         # Ensure the 'parent' key exists in the DataFrame
         if 'parent' in df.columns:
-            print("Processing 'parent' field...")
-            print("Sample 'parent' data: ", df['parent'].head())
+            # print("Processing 'parent' field...")
+            # print("Sample 'parent' data: ", df['parent'].head())
 
             # Handle cases where 'parent' might be a dictionary or None
             df['parent_id'] = df['parent'].apply(lambda x: x.get('id') if isinstance(x, dict) else None)
@@ -38,8 +38,8 @@ def get_categories(api):
             # Drop the original 'parent' column
             df = df.drop(columns=['parent'])
 
-        print("Final DataFrame: ")
-        print(df)
+        # print("Final DataFrame: ")
+        # print(df)
         return df
     else:
         print("Unexpected data structure. Expected a list of categories.")
