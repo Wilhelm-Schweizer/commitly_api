@@ -42,8 +42,18 @@ def get_invoices(api):
     except Exception as e:
         print(f"Error during API call: {e}")
 
-    # Extract the list of invoices
-    invoices = data['results']['invoices']
+
+    invoices = []
+
+    for item in data:
+        # Assuming the response data is a list of dictionaries, where each dictionary is an invoice
+        if isinstance(item, dict):
+            if 'invoices' in item:
+                invoices.extend(item['invoices'])  # if there's a nested 'invoices' key
+            else:
+                invoices.append(item)  # otherwise, treat the item as an invoice
+
+
 
     # Convert the list of invoices to a DataFrame
     df = pd.DataFrame(invoices)

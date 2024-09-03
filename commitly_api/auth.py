@@ -63,19 +63,27 @@ class CommitlyAPI:
 
             if response.status_code in [200, 201]:
                 json_response = response.json()
-                if 'results' in json_response:
-                    all_results.extend(json_response['results'])
-                else:
-                    return json_response  # Return the response directly if it's not paginated
+
+                # Handle when response is a list
+                if isinstance(json_response, list):
+                    all_results.extend(json_response)
+                # Handle when response is a dictionary with possible pagination
+                elif isinstance(json_response, dict):
+                    if 'results' in json_response:
+                        if isinstance(json_response['results'], list):
+                            all_results.extend(json_response['results'])
+                        elif isinstance(json_response['results'], dict):
+                            all_results.append(json_response['results'])  # Append the entire dictionary
+                    elif 'data' in json_response:  # Assuming 'data' might be a relevant key
+                        all_results.extend(json_response['data'])
+                    else:
+                        all_results.append(json_response)  # Append the whole response if nothing else matches
 
                 # Check if there's a next page
                 url = json_response.get('next')
                 if url:
-                    print(f"Fetching next page: {url}")
-                    # If `url` is a relative path, join it with the base URL
                     if not url.startswith("http"):
                         url = f"{self.base_url}{url}"
-                    # Reset params for subsequent pages (avoid appending them to the URL repeatedly)
                     params = None
                 else:
                     url = None
@@ -84,6 +92,4 @@ class CommitlyAPI:
                 response.raise_for_status()
 
         return all_results
-
-# Example usage:
 
