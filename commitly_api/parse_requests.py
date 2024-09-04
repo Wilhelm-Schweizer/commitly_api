@@ -50,7 +50,7 @@ def get_invoices(api):
     # Example of making a GET request to fetch company categories
     try:
         data = api.make_api_call("/invoices/")
-        print(data)
+        # print(data)
     except Exception as e:
         print(f"Error during API call: {e}")
 
@@ -71,7 +71,7 @@ def get_invoices(api):
     df = pd.DataFrame(invoices)
 
     # Display the DataFrame
-    df.head()
+    # df.head()
     return df
 
 # get_invoices(api)
@@ -80,7 +80,7 @@ def get_banks(api):
     # Example of making a GET request to fetch company categories
     try:
         data = api.make_api_call("/banks/")
-        print(data)
+        # print(data)
     except Exception as e:
         print(f"Error during API call: {e}")
 
@@ -154,6 +154,6 @@ def get_transactions(api):
     df = pd.DataFrame(flattened_data)
 
     # Display the DataFrame
-    print(df)
+    # print(df)
     return df
 

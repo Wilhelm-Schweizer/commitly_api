@@ -63,12 +63,12 @@ class CommitlyAPI:
 
             if response.status_code in [200, 201]:
                 json_response = response.json()
-                print(f"Type of json_response: {type(json_response)}")
-                print(f"json_response content: {json_response}")
+                # print(f"Type of json_response: {type(json_response)}")
+                # print(f"json_response content: {json_response}")
 
                 # Handle when response is a list
                 if isinstance(json_response, list):
-                    print("Response is a list, extending all_results.")
+                    # print("Response is a list, extending all_results.")
 
                     all_results.extend(json_response)
                     url = None
@@ -88,7 +88,7 @@ class CommitlyAPI:
 
 
                     if 'results' in json_response:
-                        print(f"'results' found in json_response: {type(json_response['results'])}")
+                        # print(f"'results' found in json_response: {type(json_response['results'])}")
                         # If 'results' is a list, extend the results
                         if isinstance(json_response['results'], list):
                             all_results.extend(json_response['results'])
@@ -98,7 +98,7 @@ class CommitlyAPI:
                         else:
                             print("Unexpected data type for 'results'.")
                     elif 'data' in json_response:  # Assuming 'data' might be a relevant key
-                        print("Extending with 'data'.")
+                        # print("Extending with 'data'.")
                         all_results.extend(json_response['data'])
                     else:
                         print("Appending entire json_response to all_results.")
