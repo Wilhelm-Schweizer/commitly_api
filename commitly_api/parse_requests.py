@@ -128,26 +128,31 @@ def get_transactions(api):
     flattened_data = []
 
     for transaction in data:
-        flattened_record = {
-            'transaction_id': transaction.get('id'),
-            'account_id': transaction.get('account', {}).get('id'),
-            'bank_name': transaction.get('account', {}).get('bank'),
-            'account_name': transaction.get('account', {}).get('name'),
-            'currency': transaction.get('account', {}).get('currency'),
-            'category_id': transaction.get('category', {}).get('id'),
-            'category_name': transaction.get('category', {}).get('name'),
-            'value_date': transaction.get('value_date'),
-            'bank_booking_date': transaction.get('bank_booking_date'),
-            'amount': transaction.get('amount'),
-            'purpose': transaction.get('purpose'),
-            'counterpart_name': transaction.get('counterpart_name'),
-            'counterpart_iban': transaction.get('counterpart_iban'),
-            'is_payment': transaction.get('is_payment'),
-            'reporting_amount': transaction.get('reporting_amount'),
-            'reporting_currency': transaction.get('reporting_currency'),
-            'exchange_rate': transaction.get('exchange_rate'),
-            'conversion_date': transaction.get('conversion_date')
-        }
+        try:
+            flattened_record = {
+                'transaction_id': transaction.get('id'),
+                'account_id': transaction.get('account', {}).get('id'),
+                'bank_name': transaction.get('account', {}).get('bank'),
+                'account_name': transaction.get('account', {}).get('name'),
+                'currency': transaction.get('account', {}).get('currency'),
+                'category_id': transaction.get('category', {}).get('id'),
+                'category_name': transaction.get('category', {}).get('name'),
+                'value_date': transaction.get('value_date'),
+                'bank_booking_date': transaction.get('bank_booking_date'),
+                'amount': transaction.get('amount'),
+                'purpose': transaction.get('purpose'),
+                'counterpart_name': transaction.get('counterpart_name'),
+                'counterpart_iban': transaction.get('counterpart_iban'),
+                'is_payment': transaction.get('is_payment'),
+                'reporting_amount': transaction.get('reporting_amount'),
+                'reporting_currency': transaction.get('reporting_currency'),
+                'exchange_rate': transaction.get('exchange_rate'),
+                'conversion_date': transaction.get('conversion_date')
+            }
+        except:
+            print('Error')
+            print(transaction)
+
         flattened_data.append(flattened_record)
 
     # Creating a DataFrame
