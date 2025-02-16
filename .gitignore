@@ -1,4 +1,3 @@
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -112,3 +111,10 @@ dmypy.json
 
 # profiling
 profiler.log
+
+# Application logs
+logs/
+logs/*.log
+
+test.py
+test.py

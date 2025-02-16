@@ -1,49 +1,48 @@
 import auth
-
-
-
-
 import pandas as pd
+from api_logger import logger
+
 pd.set_option('display.width', 400)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
 
 def get_categories(api):
+    logger.op.info("Starting category retrieval")
     # Initialize data to avoid UnboundLocalError
     data = []
 
-    # Example of making a GET request to fetch company categories
     try:
+        logger.conn.info("Making API call to /categories/")
         data = api.make_api_call("/categories/")
-        # print("API call returned data: ", data)
+        logger.conn.debug("API response received", count=len(data) if isinstance(data, list) else 0)
     except Exception as e:
-        print(f"Error during API call: {e}")
-        return None  # Exit the function if an error occurs
+        logger.conn.error("API call to /categories/ failed", error=str(e))
+        return None
 
     if isinstance(data, list):
+        logger.op.debug("Converting categories data to DataFrame")
         # Convert the data into a pandas DataFrame
         df = pd.DataFrame(data)
-
+        
         # Ensure the 'parent' key exists in the DataFrame
         if 'parent' in df.columns:
-            # print("Processing 'parent' field...")
-            # print("Sample 'parent' data: ", df['parent'].head())
-
+            logger.op.debug("Processing parent category relationships")
             # Handle cases where 'parent' might be a dictionary or None
             df['parent_id'] = df['parent'].apply(lambda x: x.get('id') if isinstance(x, dict) else None)
             df['parent_name'] = df['parent'].apply(lambda x: x.get('name') if isinstance(x, dict) else None)
-
+            
             # Drop the original 'parent' column
             df = df.drop(columns=['parent'])
-
-        # print("Final DataFrame: ")
-        # print(df)
+            
+        logger.op.info("Category processing completed", 
+                      row_count=len(df),
+                      column_count=len(df.columns))
         return df
     else:
-        print("Unexpected data structure. Expected a list of categories.")
+        logger.op.error("Invalid data structure received", 
+                       data_type=type(data).__name__)
         return None
-# get_categories(api)
 
 def get_invoices(api, start_date=None, end_date=None, modified_since=None, page_size=None):
     """
@@ -56,6 +55,12 @@ def get_invoices(api, start_date=None, end_date=None, modified_since=None, page_
         modified_since: Optional ISO format date string for filtering invoices modified after this date
         page_size: Optional integer for number of records per page
     """
+    logger.op.info("Starting invoice retrieval", 
+                   start_date=start_date,
+                   end_date=end_date,
+                   modified_since=modified_since,
+                   page_size=page_size)
+    
     params = {}
     if start_date:
         params['from'] = start_date
@@ -67,11 +72,14 @@ def get_invoices(api, start_date=None, end_date=None, modified_since=None, page_
         params['page_size'] = page_size
 
     try:
+        logger.conn.info("Making API call to /invoices/", params=params)
         data = api.make_api_call("/invoices/", params=params)
+        logger.conn.debug("API response received", count=len(data) if isinstance(data, list) else 0)
     except Exception as e:
-        print(f"Error during API call: {e}")
-        return pd.DataFrame()  # Return empty DataFrame on error
+        logger.conn.error("API call to /invoices/ failed", error=str(e), params=params)
+        return pd.DataFrame()
 
+    logger.op.debug("Processing invoice data")
     invoices = []
     for item in data:
         if isinstance(item, dict):
@@ -80,9 +88,11 @@ def get_invoices(api, start_date=None, end_date=None, modified_since=None, page_
             else:
                 invoices.append(item)
 
-    return pd.DataFrame(invoices)
-
-# get_invoices(api)
+    df = pd.DataFrame(invoices)
+    logger.op.info("Invoice processing completed", 
+                   row_count=len(df),
+                   column_count=len(df.columns))
+    return df
 
 def get_banks(api, start_date=None, end_date=None, page_size=None):
     """
@@ -94,6 +104,11 @@ def get_banks(api, start_date=None, end_date=None, page_size=None):
         end_date: Optional ISO format date string for filtering bank data before this date
         page_size: Optional integer for number of records per page
     """
+    logger.op.info("Starting bank data retrieval", 
+                   start_date=start_date,
+                   end_date=end_date,
+                   page_size=page_size)
+    
     params = {}
     if start_date:
         params['from'] = start_date
@@ -103,36 +118,47 @@ def get_banks(api, start_date=None, end_date=None, page_size=None):
         params['page_size'] = page_size
 
     try:
+        logger.conn.info("Making API call to /banks/", params=params)
         data = api.make_api_call("/banks/", params=params)
+        logger.conn.debug("API response received", count=len(data) if isinstance(data, list) else 0)
     except Exception as e:
-        print(f"Error during API call: {e}")
-        return pd.DataFrame()  # Return empty DataFrame on error
+        logger.conn.error("API call to /banks/ failed", error=str(e), params=params)
+        return pd.DataFrame()
 
+    logger.op.debug("Processing bank data")
     flattened_data = []
     for result in data:
-        for account in result['accounts']:
-            flattened_record = {
-                'bank_connection_id': result['id'],
-                'bank_name': result['name'],
-                'bank_bic': result['bic'],
-                'account_id': account['id'],
-                'account_name': account['name'],
-                'account_iban': account['iban'],
-                'currency': account['currency'],
-                'balance': account['balance'],
-                'transaction_count': account['transaction_count'],
-                'date_created': account['date_created'],
-                'date_updated': account['date_updated'],
-                'status': account['status'],
-                'last_successful_update': account['last_successful_update'],
-                'last_update_attempt': account['last_update_attempt']
-            }
-            flattened_data.append(flattened_record)
+        try:
+            for account in result['accounts']:
+                flattened_record = {
+                    'bank_connection_id': result['id'],
+                    'bank_name': result['name'],
+                    'bank_bic': result['bic'],
+                    'account_id': account['id'],
+                    'account_name': account['name'],
+                    'account_iban': account['iban'],
+                    'currency': account['currency'],
+                    'balance': account['balance'],
+                    'transaction_count': account['transaction_count'],
+                    'date_created': account['date_created'],
+                    'date_updated': account['date_updated'],
+                    'status': account['status'],
+                    'last_successful_update': account['last_successful_update'],
+                    'last_update_attempt': account['last_update_attempt']
+                }
+                flattened_data.append(flattened_record)
+        except Exception as e:
+            logger.op.error("Error processing bank record", 
+                           error=str(e),
+                           bank_id=result.get('id'),
+                           bank_name=result.get('name'))
+            continue
 
-    return pd.DataFrame(flattened_data)
-
-# get_banks(api)
-
+    df = pd.DataFrame(flattened_data)
+    logger.op.info("Bank data processing completed", 
+                   row_count=len(df),
+                   column_count=len(df.columns))
+    return df
 
 def get_transactions(api, start_date=None, end_date=None, modified_since=None, page_size=None):
     """
@@ -145,6 +171,12 @@ def get_transactions(api, start_date=None, end_date=None, modified_since=None, p
         modified_since: Optional ISO format date string for filtering transactions modified after this date
         page_size: Optional integer for number of records per page
     """
+    logger.op.info("Starting transaction retrieval", 
+                   start_date=start_date,
+                   end_date=end_date,
+                   modified_since=modified_since,
+                   page_size=page_size)
+    
     params = {}
     if start_date:
         params['from'] = start_date
@@ -156,11 +188,15 @@ def get_transactions(api, start_date=None, end_date=None, modified_since=None, p
         params['page_size'] = page_size
 
     try:
+        logger.conn.info("Making API call to /transactions/", params=params)
         data = api.make_api_call("/transactions/", params=params)
+        logger.conn.debug("API response received", 
+                         count=len(data) if isinstance(data, list) else 0)
     except Exception as e:
-        print(f"Error during API call: {e}")
-        return pd.DataFrame()  # Return empty DataFrame on error
+        logger.conn.error("API call to /transactions/ failed", error=str(e), params=params)
+        return pd.DataFrame()
         
+    logger.op.debug("Processing transaction data")
     flattened_data = []
 
     for transaction in data:
@@ -189,9 +225,14 @@ def get_transactions(api, start_date=None, end_date=None, modified_since=None, p
             }
             flattened_data.append(flattened_record)
         except Exception as e:
-            print(f'Error processing transaction: {str(e)}')
-            print(transaction)
+            logger.op.error("Error processing transaction record", 
+                           error=str(e),
+                           transaction_id=transaction.get('id'))
             continue
 
-    return pd.DataFrame(flattened_data)
+    df = pd.DataFrame(flattened_data)
+    logger.op.info("Transaction processing completed", 
+                   row_count=len(df),
+                   column_count=len(df.columns))
+    return df
 
