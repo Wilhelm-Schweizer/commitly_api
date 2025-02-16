@@ -1,4 +1,5 @@
 import requests
+import time
 
 
 class CommitlyAPI:
@@ -48,68 +49,70 @@ class CommitlyAPI:
         url = f"{self.base_url}{endpoint}"
         headers = self.get_headers()
         all_results = []
+        
+        # Add page size parameter to get maximum allowed records per request
+        current_params = params.copy() if params else {}
+        if 'page_size' not in current_params:
+            current_params['page_size'] = 100  # Maximum page size to reduce number of requests
+        
+        page_count = 0
+        max_pages = 1000  # Safety limit to prevent infinite loops
 
-        while url:
-            if method.upper() == 'GET':
-                response = requests.get(url, headers=headers, params=params)
-            elif method.upper() == 'POST':
-                response = requests.post(url, headers=headers, json=data)
-            elif method.upper() == 'PATCH':
-                response = requests.patch(url, headers=headers, json=data)
-            elif method.upper() == 'DELETE':
-                response = requests.delete(url, headers=headers)
-            else:
-                raise ValueError("Invalid HTTP method specified.")
+        while url and page_count < max_pages:
+            page_count += 1
+            try:
+                if method.upper() == 'GET':
+                    # Only use params for the first request, subsequent requests use the full next URL
+                    current_request_params = current_params if url == f"{self.base_url}{endpoint}" else None
+                    response = requests.get(url, headers=headers, params=current_request_params)
+                elif method.upper() == 'POST':
+                    response = requests.post(url, headers=headers, json=data)
+                elif method.upper() == 'PATCH':
+                    response = requests.patch(url, headers=headers, json=data)
+                elif method.upper() == 'DELETE':
+                    response = requests.delete(url, headers=headers)
+                else:
+                    raise ValueError("Invalid HTTP method specified.")
 
-            if response.status_code in [200, 201]:
-                json_response = response.json()
-                # print(f"Type of json_response: {type(json_response)}")
-                # print(f"json_response content: {json_response}")
+                if response.status_code in [200, 201]:
+                    json_response = response.json()
 
-                # Handle when response is a list
-                if isinstance(json_response, list):
-                    # print("Response is a list, extending all_results.")
+                    # Handle when response is a list
+                    if isinstance(json_response, list):
+                        all_results.extend(json_response)
+                        break
 
-                    all_results.extend(json_response)
-                    url = None
-                    # print(json_response)
-
-                # Handle when response is a dictionary with possible pagination
-                elif isinstance(json_response, dict):
-                    url = json_response.get('next')
-                    if url:
-                        print(f"Fetching next page: {url}")
-                        if not url.startswith("http"):
-                            url = f"{self.base_url}{url}"
-                        params = None  # Reset params to avoid appending them to the URL repeatedly
-                    else:
-                        url = None
-
-
-
-                    if 'results' in json_response:
-                        # print(f"'results' found in json_response: {type(json_response['results'])}")
-                        # If 'results' is a list, extend the results
-                        if isinstance(json_response['results'], list):
-                            all_results.extend(json_response['results'])
-                        # If 'results' is a dictionary, append the entire dictionary
-                        elif isinstance(json_response['results'], dict):
-                            all_results.append(json_response['results'])
+                    # Handle when response is a dictionary with possible pagination
+                    elif isinstance(json_response, dict):
+                        # Get the next page URL if it exists
+                        url = json_response.get('next')
+                        
+                        # Process the results
+                        if 'results' in json_response:
+                            if isinstance(json_response['results'], list):
+                                all_results.extend(json_response['results'])
+                            elif isinstance(json_response['results'], dict):
+                                all_results.append(json_response['results'])
+                        elif 'data' in json_response:
+                            all_results.extend(json_response['data'])
                         else:
-                            print("Unexpected data type for 'results'.")
-                    elif 'data' in json_response:  # Assuming 'data' might be a relevant key
-                        # print("Extending with 'data'.")
-                        all_results.extend(json_response['data'])
-                    else:
-                        print("Appending entire json_response to all_results.")
-                        all_results.append(json_response)  # Append the whole response if nothing else matches
+                            all_results.append(json_response)
+                            break  # If no pagination structure found, exit after first request
 
-                    # Check if there's a next page
+                else:
+                    print(f"API call failed. Status code: {response.status_code}")
+                    response.raise_for_status()
+                    
+            except Exception as e:
+                print(f"Error during API call: {str(e)}")
+                break  # Exit on error to return partial results
+                
+            # Add a small delay between requests to avoid overwhelming the API
+            if url:
+                time.sleep(0.1)  # 100ms delay between requests
 
-
-            else:
-                print(f"API call failed. Status code: {response.status_code}")
-                response.raise_for_status()
+        if page_count >= max_pages:
+            print(f"Warning: Reached maximum page limit of {max_pages}")
 
         return all_results
 

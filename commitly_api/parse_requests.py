@@ -1,4 +1,3 @@
-
 import auth
 
 
@@ -46,46 +45,70 @@ def get_categories(api):
         return None
 # get_categories(api)
 
-def get_invoices(api):
-    # Example of making a GET request to fetch company categories
+def get_invoices(api, start_date=None, end_date=None, modified_since=None, page_size=None):
+    """
+    Fetch invoices with optional date filtering and pagination
+    
+    Args:
+        api: CommitlyAPI instance
+        start_date: Optional ISO format date string for filtering invoices after this date
+        end_date: Optional ISO format date string for filtering invoices before this date
+        modified_since: Optional ISO format date string for filtering invoices modified after this date
+        page_size: Optional integer for number of records per page
+    """
+    params = {}
+    if start_date:
+        params['from'] = start_date
+    if end_date:
+        params['to'] = end_date
+    if modified_since:
+        params['modified_since'] = modified_since
+    if page_size:
+        params['page_size'] = page_size
+
     try:
-        data = api.make_api_call("/invoices/")
-        # print(data)
+        data = api.make_api_call("/invoices/", params=params)
     except Exception as e:
         print(f"Error during API call: {e}")
-
+        return pd.DataFrame()  # Return empty DataFrame on error
 
     invoices = []
-
     for item in data:
-        # Assuming the response data is a list of dictionaries, where each dictionary is an invoice
         if isinstance(item, dict):
             if 'invoices' in item:
-                invoices.extend(item['invoices'])  # if there's a nested 'invoices' key
+                invoices.extend(item['invoices'])
             else:
-                invoices.append(item)  # otherwise, treat the item as an invoice
+                invoices.append(item)
 
-
-
-    # Convert the list of invoices to a DataFrame
-    df = pd.DataFrame(invoices)
-
-    # Display the DataFrame
-    # df.head()
-    return df
+    return pd.DataFrame(invoices)
 
 # get_invoices(api)
 
-def get_banks(api):
-    # Example of making a GET request to fetch company categories
+def get_banks(api, start_date=None, end_date=None, page_size=None):
+    """
+    Fetch bank data with optional date filtering and pagination
+    
+    Args:
+        api: CommitlyAPI instance
+        start_date: Optional ISO format date string for filtering bank data after this date
+        end_date: Optional ISO format date string for filtering bank data before this date
+        page_size: Optional integer for number of records per page
+    """
+    params = {}
+    if start_date:
+        params['from'] = start_date
+    if end_date:
+        params['to'] = end_date
+    if page_size:
+        params['page_size'] = page_size
+
     try:
-        data = api.make_api_call("/banks/")
-        # print(data)
+        data = api.make_api_call("/banks/", params=params)
     except Exception as e:
         print(f"Error during API call: {e}")
+        return pd.DataFrame()  # Return empty DataFrame on error
 
     flattened_data = []
-
     for result in data:
         for account in result['accounts']:
             flattened_record = {
@@ -106,25 +129,38 @@ def get_banks(api):
             }
             flattened_data.append(flattened_record)
 
-    # Creating a DataFrame
-    df = pd.DataFrame(flattened_data)
-
-    # Display the DataFrame
-    return df
+    return pd.DataFrame(flattened_data)
 
 # get_banks(api)
 
 
-def get_transactions(api):
-
+def get_transactions(api, start_date=None, end_date=None, modified_since=None, page_size=None):
+    """
+    Fetch transactions with optional date filtering and pagination
+    
+    Args:
+        api: CommitlyAPI instance
+        start_date: Optional ISO format date string for filtering transactions after this date
+        end_date: Optional ISO format date string for filtering transactions before this date
+        modified_since: Optional ISO format date string for filtering transactions modified after this date
+        page_size: Optional integer for number of records per page
+    """
+    params = {}
+    if start_date:
+        params['from'] = start_date
+    if end_date:
+        params['to'] = end_date
+    if modified_since:
+        params['modified_since'] = modified_since
+    if page_size:
+        params['page_size'] = page_size
 
     try:
-        data = api.make_api_call("/transactions/")
-        # print(data)
+        data = api.make_api_call("/transactions/", params=params)
     except Exception as e:
         print(f"Error during API call: {e}")
-    # Flattening the JSON structure
-
+        return pd.DataFrame()  # Return empty DataFrame on error
+        
     flattened_data = []
 
     for transaction in data:
@@ -147,18 +183,15 @@ def get_transactions(api):
                 'reporting_amount': transaction.get('reporting_amount'),
                 'reporting_currency': transaction.get('reporting_currency'),
                 'exchange_rate': transaction.get('exchange_rate'),
-                'conversion_date': transaction.get('conversion_date')
+                'conversion_date': transaction.get('conversion_date'),
+                'tags': transaction.get('tags'),
+                'modified_at': transaction.get('modified_at'),
             }
-        except:
-            print('Error')
+            flattened_data.append(flattened_record)
+        except Exception as e:
+            print(f'Error processing transaction: {str(e)}')
             print(transaction)
+            continue
 
-        flattened_data.append(flattened_record)
-
-    # Creating a DataFrame
-    df = pd.DataFrame(flattened_data)
-
-    # Display the DataFrame
-    # print(df)
-    return df
+    return pd.DataFrame(flattened_data)
 
